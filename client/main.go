@@ -78,6 +78,29 @@ func main() {
 	}
 	printToolResult(result)
 	fmt.Println()
+
+	// List and Read static resource
+	fmt.Println("Listing available resources:")
+	resourcesReq := mcp.ListResourcesRequest{}
+	resources, err := c.ListResources(ctx, resourcesReq)
+	if err != nil {
+		log.Fatalf("Failed to list resources: %v", err)
+	}
+	for _, r := range resources.Resources {
+		fmt.Printf("- %s: %s\n", r.Name, r.Description)
+		fmt.Printf("- URI: %s\n", r.URI)
+
+		fmt.Println("- Reading resources:")
+		fmt.Println("-----------")
+		readResourceReq := mcp.ReadResourceRequest{}
+		readResourceReq.Params.URI = r.URI
+		result, err := c.ReadResource(ctx, readResourceReq)
+		if err != nil {
+			log.Fatalf("Failed to read resource %s: %v", r.URI, err)
+		}
+		printResourceResult(result)
+		fmt.Println("-----------")
+	}
 }
 
 // Helper function to print tool results
@@ -86,8 +109,22 @@ func printToolResult(result *mcp.CallToolResult) {
 		if textContent, ok := content.(mcp.TextContent); ok {
 			fmt.Println(textContent.Text)
 		} else {
-			jsonBytes, _ := json.MarshalIndent(content, "", "  ")
-			fmt.Println(string(jsonBytes))
+			printJSON(content)
 		}
 	}
+}
+
+func printResourceResult(result *mcp.ReadResourceResult) {
+	for _, content := range result.Contents {
+		if textContent, ok := content.(mcp.TextResourceContents); ok {
+			fmt.Println(textContent.Text)
+		} else {
+			printJSON(content)
+		}
+	}
+}
+
+func printJSON(body any) {
+	jsonBytes, _ := json.MarshalIndent(body, "", "  ")
+	fmt.Println(string(jsonBytes))
 }

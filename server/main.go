@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -12,7 +13,7 @@ import (
 func main() {
 	// Create a new MCP server
 	s := server.NewMCPServer(
-		"Calculator Demo",
+		"MPC Server Demo",
 		"1.0.0",
 		server.WithResourceCapabilities(true, true),
 		server.WithLogging(),
@@ -58,6 +59,28 @@ func main() {
 		}
 
 		return mcp.NewToolResultText(fmt.Sprintf("%.2f", result)), nil
+	})
+
+	// Add a static resource
+	resource := mcp.NewResource(
+		"docs://license",
+		"LICENSE",
+		mcp.WithResourceDescription("license file"),
+		mcp.WithMIMEType("text/plain"),
+	)
+	s.AddResource(resource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		content, err := os.ReadFile("LICENSE")
+		if err != nil {
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "docs://license",
+				MIMEType: "text/plain",
+				Text:     string(content),
+			},
+		}, nil
 	})
 
 	// Start the server

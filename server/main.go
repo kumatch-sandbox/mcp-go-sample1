@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -79,6 +80,41 @@ func main() {
 				URI:      "docs://license",
 				MIMEType: "text/plain",
 				Text:     string(content),
+			},
+		}, nil
+	})
+
+	// Add dynamic resources
+	dynamicResourceTemplate := mcp.NewResourceTemplate(
+		"user://{id}/profile",
+		"User Profile",
+		mcp.WithTemplateDescription("Returns user profile information"),
+		mcp.WithTemplateMIMEType("application/json"),
+	)
+	s.AddResourceTemplate(dynamicResourceTemplate, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		userPattern := `user://(\d+)/profile`
+		re, err := regexp.Compile(userPattern)
+		if err != nil {
+			fmt.Println("Error compiling regex:", err)
+			return nil, err
+		}
+
+		matches := re.FindAllStringSubmatch(request.Params.URI, -1)
+		if len(matches) == 0 {
+			return []mcp.ResourceContents{
+				mcp.TextResourceContents{
+					URI:      request.Params.URI,
+					MIMEType: "application/json",
+					Text:     `{}`,
+				},
+			}, nil
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      request.Params.URI,
+				MIMEType: "application/json",
+				Text:     fmt.Sprintf(`{"id":%s}`, matches[0][1]),
 			},
 		}, nil
 	})

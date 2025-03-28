@@ -9,6 +9,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/yosida95/uritemplate/v3"
 )
 
 func main() {
@@ -101,6 +102,39 @@ func main() {
 		printResourceResult(result)
 		fmt.Println("-----------")
 	}
+	fmt.Println()
+
+	// List and Read resource templates
+	fmt.Println("Listing available resource tampltes:")
+	resourceTemplatesReq := mcp.ListResourceTemplatesRequest{}
+	resourceTemplates, err := c.ListResourceTemplates(ctx, resourceTemplatesReq)
+	if err != nil {
+		log.Fatalf("Failed to list resource templates: %v", err)
+	}
+
+	r := resourceTemplates.ResourceTemplates[0]
+	fmt.Printf("- %s: %s\n", r.Name, r.Description)
+	fmt.Printf("- URI Template: %s\n", r.URITemplate.Raw())
+
+	fmt.Println("- Reading resource template:")
+
+	vars := uritemplate.Values{}
+	vars.Set("id", uritemplate.String("42"))
+	uri, err := r.URITemplate.Template.Expand(vars)
+	if err != nil {
+		log.Fatalf("Failed to create uri %s: %v", r.URITemplate.Raw(), err)
+	}
+	fmt.Printf("Get Resource URI: %s\n", uri)
+	fmt.Println("-----------")
+
+	readResourceReq := mcp.ReadResourceRequest{}
+	readResourceReq.Params.URI = uri
+	result2, err := c.ReadResource(ctx, readResourceReq)
+	if err != nil {
+		log.Fatalf("Failed to read resource template %s: %v", r.URITemplate.Raw(), err)
+	}
+	printResourceResult(result2)
+	fmt.Println("-----------")
 }
 
 // Helper function to print tool results
